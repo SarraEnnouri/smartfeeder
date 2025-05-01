@@ -41,6 +41,7 @@ class _DashboardPageState extends State<DashboardPage> {
     _fetchSpecies();
     _setupRealtimeListeners();
     _loadUserData();
+    initializeDateFormatting('fr_FR', null);
   }
 
   Future<void> _loadUserData() async {
@@ -67,6 +68,8 @@ class _DashboardPageState extends State<DashboardPage> {
       setState(() {
         _profileImageFile = File(pickedFile.path);
       });
+      // Ici vous devriez aussi uploader l'image vers Firebase Storage
+      // et mettre à jour l'URL dans Firestore
     }
   }
 
@@ -135,7 +138,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   spreadRadius: 2,
                   blurRadius: 5,
                   offset: Offset(0, 3),
-              ),  ],
+            ),],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,125 +539,144 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
       ),
       drawer: _buildDrawer(context),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.01),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-              decoration: BoxDecoration(
-                color: Color.fromARGB(255, 255, 252, 252),
-                borderRadius: BorderRadius.circular(screenWidth * 0.05),
-                border: Border.all(color: Colors.orange),
-              ),
-              child: DropdownButton<String>(
-                dropdownColor: Colors.white,
-                alignment: Alignment.centerLeft,
-                isExpanded: true,
-                value: _selectedSpecies.isNotEmpty ? _selectedSpecies : null,
-                underline: SizedBox(),
-                items: _speciesList.map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value, style: TextStyle(fontSize: 15)),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedSpecies = value!;
-                  });
-                },
+      body: Column(
+        children: [
+          // Sélecteur de type d'animal - partie fixe
+          Padding(
+            padding: EdgeInsets.only(
+              left: screenWidth * 0.05,
+              top: screenHeight * 0.02,
+              right: screenWidth * 0.05,
+              bottom: screenHeight * 0.01,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: screenWidth * 0.4,
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange),
+                ),
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  value: _selectedSpecies.isNotEmpty ? _selectedSpecies : null,
+                  underline: SizedBox(),
+                  iconSize: screenWidth * 0.05,
+                  style: TextStyle(fontSize: screenWidth * 0.035, color: Colors.black),
+                  items: _speciesList.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSpecies = value!;
+                    });
+                  },
+                ),
               ),
             ),
-            SizedBox(height: screenHeight * 0.02),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(screenWidth * 0.05),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Row(
+          ),
+          
+          // Partie défilable
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTab("Nourriture", 0, context),
-                  _buildTab("Eau", 1, context),
-                  _buildTab("Système", 2, context),
-                ],
-              ),
-            ),
-            SizedBox(height: screenHeight * 0.03),
-            Text(
-              "Mois",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            SizedBox(height: screenHeight * 0.01),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("10L", style: TextStyle(fontSize: 16)),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.01,
-                      vertical: screenHeight * 0.006),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                  ),
-                  child: Text(
-                    DateFormat.MMMM('fr_FR').format(DateTime.now()),
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(screenWidth * 0.05),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.2),
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: Offset(0, 3),
+                    ),],
+                    ),
+                    child: Row(
+                      children: [
+                        _buildTab("Nourriture", 0, context),
+                        _buildTab("Eau", 1, context),
+                        _buildTab("Système", 2, context),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: screenHeight * 0.03),
-            _getChartForTab(context),
-            SizedBox(height: screenHeight * 0.03),
-            Text(
-              "Niveau en temps réel",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            SizedBox(height: screenHeight * 0.02),
-            _buildRealtimeListener("Nourriture", Icons.scale),
-            SizedBox(height: screenHeight * 0.02),
-            _buildRealtimeListener("Eau", Icons.water_drop),
-            SizedBox(height: screenHeight * 0.03),
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.03,
-                    vertical: screenHeight * 0.02,
+                  SizedBox(height: screenHeight * 0.03),
+                  Text(
+                    "Mois",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(screenWidth * 0.05),
+                  SizedBox(height: screenHeight * 0.01),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("10L", style: TextStyle(fontSize: 16)),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.01,
+                            vertical: screenHeight * 0.006),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        ),
+                        child: Text(
+                          DateFormat.MMMM('fr_FR').format(DateTime.now()),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => AjusterModePage()),
-                  );
-                },
-                child: Text("Ajuster Mode", style: TextStyle(fontSize: 16)),
+                  SizedBox(height: screenHeight * 0.03),
+                  _getChartForTab(context),
+                  SizedBox(height: screenHeight * 0.03),
+                  Text(
+                    "Niveau en temps réel",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  SizedBox(height: screenHeight * 0.02),
+                  _buildRealtimeListener("Nourriture", Icons.scale),
+                  SizedBox(height: screenHeight * 0.02),
+                  _buildRealtimeListener("Eau", Icons.water_drop),
+                  SizedBox(height: screenHeight * 0.03),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.03,
+                          vertical: screenHeight * 0.02,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(screenWidth * 0.05),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => AjusterModePage()),
+                        );
+                      },
+                      child: Text("Ajuster Mode", style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                  SizedBox(height: screenHeight * 0.04),
+                ],
               ),
             ),
-            SizedBox(height: screenHeight * 0.04),
-          ],
-        ),
+          ),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedBottomIndex,
