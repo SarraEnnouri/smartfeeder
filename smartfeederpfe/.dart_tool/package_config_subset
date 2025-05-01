@@ -588,8 +588,13 @@ file:///C:/Users/samar/AppData/Local/Pub/Cache/hosted/pub.dev/xml-6.5.0/
 file:///C:/Users/samar/AppData/Local/Pub/Cache/hosted/pub.dev/xml-6.5.0/lib/
 yaml
 3.4
+<<<<<<< HEAD
 file:///C:/Users/samar/AppData/Local/Pub/Cache/hosted/pub.dev/yaml-3.1.3/
 file:///C:/Users/samar/AppData/Local/Pub/Cache/hosted/pub.dev/yaml-3.1.3/lib/
+=======
+file:///C:/Users/nouri/AppData/Local/Pub/Cache/hosted/pub.dev/yaml-3.1.3/
+file:///C:/Users/nouri/AppData/Local/Pub/Cache/hosted/pub.dev/yaml-3.1.3/lib/
+>>>>>>> 387be9efab7f1314eb0018a5dfe184286bfd6a06
 sky_engine
 3.7
 file:///C:/flutter_windows_3.27.4-stable/flutter/bin/cache/pkg/sky_engine/
@@ -604,10 +609,19 @@ file:///C:/flutter_windows_3.27.4-stable/flutter/packages/flutter_test/
 file:///C:/flutter_windows_3.27.4-stable/flutter/packages/flutter_test/lib/
 flutter_web_plugins
 3.7
+<<<<<<< HEAD
 file:///C:/flutter_windows_3.27.4-stable/flutter/packages/flutter_web_plugins/
 file:///C:/flutter_windows_3.27.4-stable/flutter/packages/flutter_web_plugins/lib/
 smartfeeder
 3.7
 file:///C:/smartfeeder/smartfeederpfe/
 file:///C:/smartfeeder/smartfeederpfe/lib/
+=======
+file:///C:/flutter/packages/flutter_web_plugins/
+file:///C:/flutter/packages/flutter_web_plugins/lib/
+smartfeeder
+3.7
+file:///C:/notre-projet/smartfeederpfe/
+file:///C:/notre-projet/smartfeederpfe/lib/
+>>>>>>> 387be9efab7f1314eb0018a5dfe184286bfd6a06
 2
