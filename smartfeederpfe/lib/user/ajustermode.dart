@@ -47,7 +47,7 @@ class _AjusterModePageState extends State<AjusterModePage> {
         if (feedTypes.isNotEmpty) selectedFeed = feedTypes.first;
       });
     } catch (e) {
-      print("Erreur chargement des types d'alimentation : $e");
+      print("Erreur chargement des types d'alimentation   verifer : $e");
     }
   }
 
