@@ -1,0 +1,66 @@
+name: smartfeeder
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^3.13.0
+  cupertino_icons: ^1.0.8
+  firebase_auth: ^5.5.1
+  firebase_storage: ^12.4.4  
+  fluttertoast: ^8.2.2 
+  google_fonts: ^6.1.0
+  google_identity_services_web: 0.3.3
+  google_sign_in: 6.3.0
+  google_sign_in_android: 6.2.0
+  google_sign_in_ios: 5.8.1
+  google_sign_in_platform_interface: 2.5.0
+  google_sign_in_web: 0.12.4+4
+  http: 1.3.0
+  http_parser: 4.1.2
+  webview_flutter: ^4.10.0
+  flutter_markdown: ^0.6.15
+  intl: ^0.18.1
+  cloud_firestore: ^5.6.5
+  url_launcher: ^6.1.14
+  chat_gpt_sdk: ^3.0.4
+  dash_chat_2: 0.0.20
+  fl_chart: ^0.70.2 
+  image_picker: ^1.0.4
+  syncfusion_flutter_charts: ^20.4.48
+  table_calendar: ^3.0.0
+  provider: ^6.0.5
+  google_generative_ai: ^0.4.7
+  flutter_dotenv: ^5.2.1
+  permission_handler: ^11.0.1
+ 
+ 
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "launcher_icons"
+  ios: true
+  image_path: "assets/images/logo.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - .env
+  
+
+  fonts:
+    - family: Inknut
+      fonts:
+        - asset: assets/font/Inknut-Regular.ttf
