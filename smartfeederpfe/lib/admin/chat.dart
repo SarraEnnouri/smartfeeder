@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
- import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:smartfeeder/admin/historiqueadmin.dart';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'alertadmin.dart';
 import 'adminac.dart';
 import 'profiladmin.dart';
-
 
 class ChatVetPage extends StatefulWidget {
   @override
@@ -21,10 +20,32 @@ class _ChatVetPageState extends State<ChatVetPage> {
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = false;
   bool _isConnected = true;
+  int _currentIndex = 1;
 
+  // Articles sur la santé des volailles
+  final List<Map<String, String>> _healthArticles = [
+    {
+      'title': "Élever des poules",
+      'description': "Comment élever des poules dans les meilleures conditions",
+      'image': 'assets/images/article1.jpeg',
+      'url': 'https://poules-club.com/elever-des-poules/',
+      'color': '0xFFFFF0E3'
+    },
+    {
+      'title': "Alimentation pour poules",
+      'description': "Conseils pour nourrir vos poules",
+      'image': 'assets/images/articles2.jpeg',
+      'url': 'http://www.jardiner-malin.fr/conseil-animal/alimentation-poule.html',
+      'color': '0xFFFFF0E3'
+    },
+  ];
 
-
- 
+  @override
+  void dispose() {
+    _controllerQuery.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   Future<void> sendMessage() async {
     final userInput = _controllerQuery.text.trim();
@@ -137,20 +158,14 @@ class _ChatVetPageState extends State<ChatVetPage> {
     );
   }
 
-  Widget _buildArticleCard({
-    required Color backgroundColor,
-    required String image,
-    required String title,
-    required String description,
-    required String url,
-  }) {
+  Widget _buildArticleCard(Map<String, String> article) {
     return Card(
-      color: backgroundColor,
+      color: Color(int.parse(article['color']!)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 4,
       child: InkWell(
         borderRadius: BorderRadius.circular(15),
-        onTap: () => _launchURL(url),
+        onTap: () => _launchURL(article['url']!),
         child: Column(
           children: [
             Expanded(
@@ -158,7 +173,7 @@ class _ChatVetPageState extends State<ChatVetPage> {
               child: ClipRRect(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
                 child: Image.asset(
-                  image,
+                  article['image']!,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => 
@@ -174,7 +189,7 @@ class _ChatVetPageState extends State<ChatVetPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      article['title']!,
                       style: TextStyle(
                         fontSize: 16, 
                         fontWeight: FontWeight.bold,
@@ -184,7 +199,7 @@ class _ChatVetPageState extends State<ChatVetPage> {
                     ),
                     SizedBox(height: 5),
                     Text(
-                      description,
+                      article['description']!,
                       style: TextStyle(fontSize: 12),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
@@ -244,57 +259,87 @@ class _ChatVetPageState extends State<ChatVetPage> {
     );
   }
 
- Widget _buildBottomNavigationBar() {
-  return Container(
-    decoration: BoxDecoration(
-      color: Colors.grey[200],
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(20),
-        topRight: Radius.circular(20),
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
       ),
-    ),
-    child: BottomNavigationBar(
-      backgroundColor: Colors.grey[200],
-      selectedItemColor: Colors.black,
-      unselectedItemColor: Colors.black,
-      type: BottomNavigationBarType.fixed,
-      elevation: 0,
-      currentIndex: 1, // Index pour l'icône "article" qui est la page actuelle
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.notifications), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.article), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.settings), label: ''),
+      child: BottomNavigationBar(
+        backgroundColor: Colors.transparent,
+        currentIndex: _currentIndex,
+        selectedItemColor: Colors.orange,
+        unselectedItemColor: Colors.black,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.article), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: ''),
+        ],
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+          switch (index) {
+            case 0:
+              Navigator.push(context, MaterialPageRoute(builder: (context) => Alerteadmin()));
+              break;
+            case 1:
+              // Déjà sur la page de chat
+              break;
+            case 2:
+              Navigator.push(context, MaterialPageRoute(builder: (context) => AdminAcPage()));
+              break;
+            case 3:
+              Navigator.push(context, MaterialPageRoute(builder: (context) => HistoriqueAdmin()));
+              break;
+            case 4:
+              Navigator.push(context, MaterialPageRoute(builder: (context) => Profileadmin()));
+              break;
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildChatHistory() {
+    if (messages.isEmpty) return SizedBox.shrink();
+
+    return Column(
+      children: [
+        SizedBox(height: 20),
+        Container(
+          constraints: BoxConstraints(minHeight: 100, maxHeight: 300),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  reverse: true,
+                  itemCount: messages.length,
+                  itemBuilder: (_, index) => _buildMessageBubble(messages[index]),
+                ),
+              ),
+              if (_isLoading)
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: CircularProgressIndicator(color: Colors.orange),
+                ),
+            ],
+          ),
+        ),
       ],
-      onTap: (index) {
-        switch (index) {
-          case 0:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => Alerteadmin()),
-            );
-            break;
-          case 1:
-            // Ne rien faire car on est déjà sur cette page
-            break;
-          case 2:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => AdminAcPage()),
-            );
-            break;
-          case 3:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => Profileadmin()),
-            );
-            break;
-        }
-      },
-    ),
-  );
-}
-  
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -306,7 +351,6 @@ class _ChatVetPageState extends State<ChatVetPage> {
           'assets/images/logo.png', 
           width: 50, 
           height: 50,
-         
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
@@ -328,8 +372,39 @@ class _ChatVetPageState extends State<ChatVetPage> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 1. Recherche Web
+                    Row(
+                      children: [
+                        Spacer(),
+                        Container(
+                          width: 276,
+                          child: TextField(
+                            controller: _searchController,
+                            onSubmitted: (_) => searchOnWeb(),
+                            decoration: InputDecoration(
+                              labelText: 'Rechercher des articles',
+                              prefixIcon: Icon(Icons.search, color: Colors.orange),
+                              labelStyle: TextStyle(color: Colors.orange),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.orange, width: 2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.orange, width: 2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+
+                    // 2. Articles
                     Center(
                       child: RichText(
                         text: TextSpan(
@@ -348,38 +423,7 @@ class _ChatVetPageState extends State<ChatVetPage> {
                         ),
                       ),
                     ),
-                    SizedBox(height: 18),
-                   Row(
-              children: [
-                Spacer(), // pousse le champ vers la droite
-                Container(
-                  width: 300, // largeur du champ de texte
-                  child: TextField(
-                    controller: _searchController,
-                    onSubmitted: (_) => searchOnWeb(),
-                    decoration: InputDecoration(
-                      labelText: 'Rechercher des articles',
-                      prefixIcon: Icon(Icons.search),
-                      labelStyle: TextStyle(color: Colors.orange),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.orange, width: 2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                         focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.orange, width: 2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                                    ),
-                  ),
-                ),
-              ],
-            ),
-
-                   
-                    SizedBox(height: 20),
+                    SizedBox(height: 10),
                     GridView.count(
                       shrinkWrap: true,
                       physics: NeverScrollableScrollPhysics(),
@@ -387,84 +431,62 @@ class _ChatVetPageState extends State<ChatVetPage> {
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
                       childAspectRatio: 0.85,
-                      children: [
-                        _buildArticleCard(
-                          backgroundColor: const Color(0xFFFFF0E3),
-                          image: 'assets/images/article1.jpeg',
-                          title: "Élever des poules",
-                          description: "Comment élever des poules dans les meilleures conditions",
-                          url: 'https://poules-club.com/elever-des-poules/',
-                        ),
-                        _buildArticleCard(
-                          backgroundColor: const Color(0xFFFFF0E3),
-                          image: 'assets/images/articles2.jpeg',
-                          title: "Alimentation pour poules",
-                          description: "Conseils pour nourrir vos poules",
-                          url: 'http://www.jardiner-malin.fr/conseil-animal/alimentation-poule.html',
-                        ),
-                      ],
+                      children: _healthArticles.map((article) => _buildArticleCard(article)).toList(),
                     ),
                     SizedBox(height: 20),
-                    Text(
-                      "En quoi puis-je vous aider ?",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+
+                    // 3. Section d'aide
+                    Center(
+                      child: Text(
+                        "En quoi puis-je vous aider ?",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
-                    Container(
-                      constraints: BoxConstraints(minHeight: 100, maxHeight: 300),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
+
+                    // 4. Zone de texte
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Row(
                         children: [
                           Expanded(
-                            child: ListView.builder(
-                              reverse: true,
-                              itemCount: messages.length,
-                              itemBuilder: (_, index) {
-                                return _buildMessageBubble(messages[index]);
-                              },
+                            child: TextField(
+                              controller: _controllerQuery,
+                              decoration: InputDecoration(
+                                hintText: 'Posez votre question...',
+                                prefixIcon: Icon(Icons.search, color: Colors.orange),
+                              labelStyle: TextStyle(color: Colors.orange),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.orange, width: 2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),),
+                              onSubmitted: (_) => sendMessage(),
                             ),
                           ),
-                          if (_isLoading)
-                            Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: CircularProgressIndicator(
-                                color: Colors.orange,
-                              ),
-                            ),
+                          SizedBox(width: 8),
+                          IconButton(
+                            icon: Icon(Icons.send, color: Colors.orange),
+                            onPressed: sendMessage,
+                          ),
                         ],
                       ),
                     ),
+                    SizedBox(height: 20),
+
+                    // 5. Historique (conditionnel)
+                    _buildChatHistory(),
                   ],
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controllerQuery,
-                      decoration: InputDecoration(
-                        hintText: 'Posez votre question...',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                      ),
-                      onSubmitted: (_) => sendMessage(),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  IconButton(
-                    icon: Icon(Icons.send, color: Colors.orange),
-                    onPressed: sendMessage,
-                  ),
-                ],
               ),
             ),
           ],

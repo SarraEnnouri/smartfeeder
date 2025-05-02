@@ -8,20 +8,15 @@ class HistoriqueAdmin extends StatefulWidget {
 }
 
 class _HistoriqueAdminState extends State<HistoriqueAdmin> {
-
   String? _selectedTimeFilter;
-
   final List<String> _timeFilters = ['Aujourd\'hui', 'Hier', 'Cette semaine'];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Stream<QuerySnapshot> _getFilteredHistory() {
-    CollectionReference historique = FirebaseFirestore.instance.collection('historique');
-    Query query = historique;
+    Query query = _firestore.collection('historique');
 
-    
-
-    // 2. Filtre par période
     if (_selectedTimeFilter != null) {
-      final now = DateTime.now().toLocal(); // Utilise le fuseau local
+      final now = DateTime.now().toLocal();
       final todayStart = DateTime(now.year, now.month, now.day);
       
       switch (_selectedTimeFilter) {
@@ -40,7 +35,7 @@ class _HistoriqueAdminState extends State<HistoriqueAdmin> {
           break;
 
         case 'Cette semaine':
-          int daysToSubtract = todayStart.weekday - 1; // Lundi = 1
+          int daysToSubtract = todayStart.weekday - 1;
           DateTime weekStart = todayStart.subtract(Duration(days: daysToSubtract));
           final weekEnd = weekStart.add(Duration(days: 7));
           query = query
@@ -50,18 +45,50 @@ class _HistoriqueAdminState extends State<HistoriqueAdmin> {
       }
     }
 
-    // 3. Tri par date décroissante
     return query.orderBy('timestamp', descending: true).snapshots();
+  }
+
+  Future<void> _deleteHistoryItem(String docId) async {
+    try {
+      await _firestore.collection('historique').doc(docId).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Entrée supprimée avec succès')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de la suppression: ${e.toString()}')),
+      );
+    }
+  }
+
+  void _showDeleteDialog(String docId, String action) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Confirmer la suppression'),
+        content: Text('Voulez-vous vraiment supprimer cette entrée d\'historique ?\n\nAction: $action'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteHistoryItem(docId);
+            },
+            child: Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _resetFilters() {
     setState(() {
-    
       _selectedTimeFilter = null;
     });
   }
-
-  
 
   Widget _buildTimeFilterChips() {
     return Padding(
@@ -88,39 +115,34 @@ class _HistoriqueAdminState extends State<HistoriqueAdmin> {
     );
   }
 
- Widget _buildCategoryIcon(String? category) {
-   if (category == 'utilisateur') {
-    return Image.asset(
-      'assets/images/up.png',
-      width: 30,
-      height: 30,
-      fit: BoxFit.contain,
-     
-    );
-  } 
-
-
-  if (category == 'animal') {
-    return Image.asset(
-      'assets/images/logo.png',
-      width: 30,
-      height: 30,
-      fit: BoxFit.contain,
-      color: const Color.fromARGB(255, 0, 0, 0), // Optionnel : pour teinter l'image
-    );
-  } 
-
-
-  return Icon(Icons.category);
-}
+  Widget _buildCategoryIcon(String? category) {
+    if (category == 'utilisateur') {
+      return Image.asset(
+        'assets/images/up.png',
+        width: 30,
+        height: 30,
+        fit: BoxFit.contain,
+      );
+    } 
+    if (category == 'animal') {
+      return Image.asset(
+        'assets/images/logo.png',
+        width: 30,
+        height: 30,
+        fit: BoxFit.contain,
+        color: const Color.fromARGB(255, 0, 0, 0),
+      );
+    } 
+    return Icon(Icons.category);
+  }
 
   Widget _buildActionIcon(String action) {
     if (action.startsWith('Ajout')) {
-      return Icon(Icons.add_circle, color: Colors.green);
+      return Icon(Icons.add_circle, color: Colors.orange);
     } else if (action.startsWith('Modification')) {
       return Icon(Icons.edit, color: Colors.orange);
     } else if (action.startsWith('Suppression')) {
-      return Icon(Icons.delete, color: Colors.red);
+      return Icon(Icons.delete, color: Colors.orange);
     }
     return Icon(Icons.info);
   }
@@ -161,31 +183,60 @@ class _HistoriqueAdminState extends State<HistoriqueAdmin> {
             itemCount: docs.length,
             separatorBuilder: (_, __) => Divider(),
             itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
+              final doc = docs[index];
+              final data = doc.data() as Map<String, dynamic>;
               final action = data['action'] ?? 'Action inconnue';
               final details = data['details'] ?? 'Détails manquants';
               final user = data['user'] ?? data['userEmail'] ?? 'Utilisateur inconnu';
               final date = (data['timestamp'] as Timestamp).toDate();
               final category = data['categorie'];
 
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.grey[100],
-                  child: _buildCategoryIcon(category),
-                ),
-                title: Text(action, style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(details),
-                    SizedBox(height: 4),
-                    Text(
-                      '${DateFormat('dd/MM/yyyy à HH:mm').format(date)} • Par: $user',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              return LongPressDraggable(
+                feedback: Material(
+                  child: Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
+                    child: _buildHistoryItem(
+                      action: action,
+                      details: details,
+                      user: user,
+                      date: date,
+                      category: category,
+                    ),
+                  ),
                 ),
-                trailing: _buildActionIcon(action),
+                childWhenDragging: Opacity(
+                  opacity: 0.5,
+                  child: _buildHistoryItem(
+                    action: action,
+                    details: details,
+                    user: user,
+                    date: date,
+                    category: category,
+                  ),
+                ),
+                onDragStarted: () {},
+                onDragEnd: (details) {},
+                child: GestureDetector(
+                  onLongPress: () => _showDeleteDialog(doc.id, action),
+                  child: _buildHistoryItem(
+                    action: action,
+                    details: details,
+                    user: user,
+                    date: date,
+                    category: category,
+                  ),
+                ),
               );
             },
           );
@@ -194,13 +245,40 @@ class _HistoriqueAdminState extends State<HistoriqueAdmin> {
     );
   }
 
+  Widget _buildHistoryItem({
+    required String action,
+    required String details,
+    required String user,
+    required DateTime date,
+    required String? category,
+  }) {
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: Colors.grey[100],
+        child: _buildCategoryIcon(category),
+      ),
+      title: Text(action, style: TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(details),
+          SizedBox(height: 4),
+          Text(
+            '${DateFormat('dd/MM/yyyy à HH:mm').format(date)} • Par: $user',
+            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+          ),
+        ],
+      ),
+      trailing: _buildActionIcon(action),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Empêche setState sur widget non monté
-    if (!mounted) return Container();
-
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: Text("Historique des Actions"),
         actions: [
           IconButton(
@@ -212,7 +290,6 @@ class _HistoriqueAdminState extends State<HistoriqueAdmin> {
       ),
       body: Column(
         children: [
-        
           _buildTimeFilterChips(),
           _buildHistoryList(),
         ],

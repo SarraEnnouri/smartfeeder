@@ -41,20 +41,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Créer un utilisateur avec Firebase Auth
-      UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Envoi de l'email de vérification
       await userCredential.user?.sendEmailVerification();
 
-      // Déterminer la collection en fonction du rôle sélectionné
       String collectionName = userType == 'admin' ? 'admin' : 'users';
 
-      // Sauvegarde des informations supplémentaires dans Firestore
       await _firestore.collection(collectionName).doc(userCredential.user?.uid).set({
         'firstName': firstName,
         'lastName': lastName,
@@ -64,7 +59,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         'uid': userCredential.user?.uid,
       });
 
-      // Afficher le dialogue de confirmation de l'email
       _showEmailConfirmationDialog(userCredential.user!);
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Erreur lors de l\'inscription';
@@ -91,7 +85,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  // Fonction pour afficher le dialogue de confirmation de l'email
   void _showEmailConfirmationDialog(User user) {
     showDialog(
       context: context,
@@ -101,15 +94,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
           content: Text('Avez-vous reçu un email pour confirmer votre adresse ?'),
           actions: <Widget>[
             TextButton(
-              onPressed: () {
-                // Si l'utilisateur clique sur Non
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: Text('Non'),
             ),
             TextButton(
               onPressed: () async {
-                // Vérification de l'email de l'utilisateur
                 await checkEmailVerified(user);
               },
               child: Text('Oui'),
@@ -120,13 +109,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // Fonction pour vérifier si l'email de l'utilisateur est vérifié
   Future<void> checkEmailVerified(User user) async {
-    if (user.emailVerified) {
+    await user.reload();
+    if (_auth.currentUser?.emailVerified ?? false) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Vous pouvez maintenant vous connecter')),
       );
-      Navigator.pushReplacementNamed(context, '/login'); // Redirection vers la page de login
+      Navigator.pushReplacementNamed(context, '/login');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Veuillez vérifier votre email avant de vous connecter.')),
@@ -134,42 +123,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  // Fonction de création d'un champ de texte pour le formulaire
   Widget _buildRoundedTextField({
     required String label,
     required Function(String) onChanged,
     TextInputType keyboardType = TextInputType.text,
     bool obscureText = false,
     bool isPasswordField = false,
+    bool isConfirmPasswordField = false,
   }) {
     return TextFormField(
       decoration: _inputDecoration(
         label,
-        isPasswordField: isPasswordField,
-        showPassword: isPasswordField
-            ? _isPasswordVisible
-            : _isConfirmPasswordVisible,
-        onToggleVisibility: isPasswordField
-            ? () => setState(() => _isPasswordVisible = !_isPasswordVisible)
-            : () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+        isPasswordField: isPasswordField || isConfirmPasswordField,
+        showPassword: isPasswordField ? _isPasswordVisible : _isConfirmPasswordVisible,
+        onToggleVisibility: () {
+          setState(() {
+            if (isPasswordField) {
+              _isPasswordVisible = !_isPasswordVisible;
+            } else if (isConfirmPasswordField) {
+              _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+            }
+          });
+        },
       ),
       keyboardType: keyboardType,
       obscureText: obscureText,
       onChanged: onChanged,
       style: TextStyle(fontSize: 18),
       validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Ce champ est obligatoire';
-        }
-        if (label.contains('Email') && !value.contains('@')) {
-          return 'Email invalide';
-        }
+        if (value == null || value.isEmpty) return 'Ce champ est obligatoire';
+        if (label.contains('Email') && !value.contains('@')) return 'Email invalide';
         return null;
       },
     );
   }
 
-  // Fonction pour personnaliser l'apparence du champ de texte
   InputDecoration _inputDecoration(
     String label, {
     bool isPasswordField = false,
@@ -316,7 +304,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         label: "Confirmation du mot de passe",
                         onChanged: (value) => confirmPassword = value,
                         obscureText: !_isConfirmPasswordVisible,
-                        isPasswordField: true,
+                        isConfirmPasswordField: true,
                       ),
                       const SizedBox(height: 20),
                       Row(

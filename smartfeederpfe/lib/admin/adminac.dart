@@ -26,7 +26,6 @@ class _AdminAcPageState extends State<AdminAcPage> {
   bool _showGeminiPanel = false;
   String _selectedStatistic = '';
   String _geminiResponse = '';
-  final TextEditingController _geminiQuestionController = TextEditingController();
   bool _isLoadingGemini = false;
   bool _hasError = false;
 
@@ -151,8 +150,8 @@ STATISTIQUES:
 ''';
   }
 
-  Future<void> _askGemini() async {
-    if (_geminiQuestionController.text.isEmpty) return;
+  Future<void> _askGemini({bool autoAnalysis = false}) async {
+    if (autoAnalysis && _selectedStatistic.isEmpty) return;
 
     setState(() {
       _isLoadingGemini = true;
@@ -170,34 +169,36 @@ STATISTIQUES:
       final animalsSnapshot = await _firestore.collection('animals').get();
       final alertsSnapshot = await _firestore.collection('alertes').count().get();
 
-      final context = '''
-DONNÉES COMPLÈTES DE L'APPLICATION:
-----------------------
-CONSOMMATION:
-- Total Nourriture: ${_totalFood.toStringAsFixed(0)} g
-- Total Eau: ${_totalWater.toStringAsFixed(0)} ml
+      String prompt;
+      
+      if (_selectedStatistic == 'Nourriture') {
+        prompt = '''
+En tant que spécialiste en nutrition animale, fournis une analyse professionnelle de la consommation alimentaire avec:
+1. Évaluation de consommation faible/elvée ou Moyenne par jour 
+2. Comparaison avec les standards avicoles
+3. Recommandations précises
+4. Conseils d'optimisation
+en bref
+DONNÉES ACTUELLES:
+- Total consommé: ${_totalFood.toStringAsFixed(0)} g
+- Moyenne journalière: ${(_totalFood / 30).toStringAsFixed(0)} g
 - Dernière mise à jour: ${_lastUpdate != null ? DateFormat('dd/MM/yyyy HH:mm').format(_lastUpdate!) : 'N/A'}
-
-ANALYSE STATISTIQUE:
-${_getConsumptionAnalysis(_totalFood, _totalWater)}
-
-UTILISATEURS:
-- Nombre d'utilisateurs: ${usersSnapshot.docs.length}
-
-ANIMAUX:
-- Nombre d'animaux: ${animalsSnapshot.docs.length}
-- Types d'animaux: ${animalsSnapshot.docs.map((doc) => doc['species'] as String).toSet().join(', ')}
-
-ALERTES:
-- Nombre total d'alertes: ${alertsSnapshot.count}
-----------------------
-
-En tant que spécialiste animalier, réponds précisément en français à la question suivante. Fournis une analyse technique et des conseils professionnels lorsque c'est pertinent, ou réponds de manière naturelle et humaine aux messages simples comme "bonjour", "salut", etc., avec clarté et empathie.
-
-Question : ${_geminiQuestionController.text}
-
-Réponse:
 ''';
+      } else { // Eau
+        prompt = '''
+En tant qu'expert en hydratation animale, fournis une analyse professionnelle de la consommation d'eau avec:
+1. Évaluation de consommation  faible/elvée ou Moyenne par jour 
+2. Comparaison avec les besoins standards
+3. Signes vitaux à surveiller
+4. Conseils d'optimisation
+en bref
+DONNÉES ACTUELLES:
+- Total consommé: ${_totalWater.toStringAsFixed(0)} ml
+- Moyenne journalière: ${(_totalWater / 30).toStringAsFixed(0)} ml
+- Ratio nourriture/eau: ${(_totalFood/_totalWater).toStringAsFixed(2)}
+- Dernière mise à jour: ${_lastUpdate != null ? DateFormat('dd/MM/yyyy HH:mm').format(_lastUpdate!) : 'N/A'}
+''';
+      }
 
       final model = GenerativeModel(
         model: 'gemini-2.0-flash',
@@ -213,32 +214,25 @@ Réponse:
           SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none),
           SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none),
         ],
-       systemInstruction: Content.text('''
-<<<<<<< HEAD
-Tu dois répondre *exactement comme un humain*, quel que soit le type de question : 
-=======
-Tu dois répondre exactement comme un humain, quel que soit le type de question : 
->>>>>>> d10376e870d79e0eab0e1f0b7b81daf22e96280d
-- Pour les questions simples (ex. : "Bonjour", "Salut", "Comment ça va ?", "Tu es qui ?"), réponds naturellement, poliment, de manière fluide et humaine, comme le ferait un vrai professionnel.
-- Pour les questions techniques ou vétérinaires, adopte une structure rigoureuse avec :
-  1. Diagnostic clair
-  2. Causes possibles
-  3. Solutions recommandées
-  4. Conseils de prévention
+        systemInstruction: Content.text('''
+              Tu es un assistant professionnel pour éleveurs avicoles. Fournis des analyses techniques structurées avec:
+              1. Titre clair 
+              2. Points clés sous forme de puces
+              3. Recommandations actionnables
+              4. Niveau d'urgence si pertinent
+              Utilise un style concis et professionnel avec emojis pertinents.
+              '''),
+      );
 
-Tu peux répondre à *toutes les questions, qu'elles soient techniques ou conversationnelles, avec **la précision et la compréhension d'un humain*. Utilise un vocabulaire professionnel mais compréhensible pour tous.
-'''),
-);
-
-      final response = await model.generateContent([Content.text(context)]);
+      final response = await model.generateContent([Content.text(prompt)]);
       
       setState(() {
-        _geminiResponse = response.text ?? 'Aucune réponse reçue';
+        _geminiResponse = response.text ?? 'Aucune analyse disponible';
       });
 
     } catch (e) {
       setState(() {
-        _geminiResponse = 'Erreur: ${e.toString()}';
+        _geminiResponse = 'Erreur technique: Impossible de générer l\'analyse';
         _hasError = true;
       });
     } finally {
@@ -270,8 +264,8 @@ Tu peux répondre à *toutes les questions, qu'elles soient techniques ou conver
               _showGeminiPanel = true;
               _selectedStatistic = title;
               _geminiResponse = '';
-              _geminiQuestionController.clear();
             });
+            _askGemini(autoAnalysis: true);
           },
           child: Padding(
             padding: EdgeInsets.all(16),
@@ -596,65 +590,64 @@ Tu peux répondre à *toutes les questions, qu'elles soient techniques ou conver
       ),
     );
   }
+  
   int _currentIndex = 2; // 2 pour AdminAcPage
 
-Widget _buildBottomNavigationBar(BuildContext context) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Colors.grey[200],
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(20),
-        topRight: Radius.circular(20),
-      ),
-      boxShadow: const [
-        BoxShadow(
-          color: Colors.black12,
-          blurRadius: 10,
-          spreadRadius: 1,
+  Widget _buildBottomNavigationBar(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
         ),
-      ],
-    ),
-
-    child: BottomNavigationBar(
-      backgroundColor: Colors.transparent,
-      currentIndex: _currentIndex, // ← Définit l'élément sélectionné
-      selectedItemColor: Colors.orange, // ← Couleur de l'élément actif
-      unselectedItemColor: Colors.black,
-      type: BottomNavigationBarType.fixed,
-      elevation: 0,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.notifications), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.article), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.history), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.settings), label: ''),
-      ],
-      onTap: (index) {
-        setState(() {
-          _currentIndex = index;
-        });
-        switch (index) {
-          case 0:
-            Navigator.push(context, MaterialPageRoute(builder: (context) => Alerteadmin()));
-            break;
-          case 1:
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ChatVetPage()));
-            break;
-          case 2:
-            Navigator.push(context, MaterialPageRoute(builder: (context) => AdminAcPage()));
-            break;
-          case 3:
-            Navigator.push(context, MaterialPageRoute(builder: (context) => HistoriqueAdmin()));
-            break;
-          case 4:
-            Navigator.push(context, MaterialPageRoute(builder: (context) => Profileadmin()));
-            break;
-        }
-      },
-    ),
-  );
-}
-
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        backgroundColor: Colors.transparent,
+        currentIndex: _currentIndex,
+        selectedItemColor: Colors.orange,
+        unselectedItemColor: Colors.black,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.article), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: ''),
+        ],
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+          switch (index) {
+            case 0:
+              Navigator.push(context, MaterialPageRoute(builder: (context) => Alerteadmin()));
+              break;
+            case 1:
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ChatVetPage()));
+              break;
+            case 2:
+              Navigator.push(context, MaterialPageRoute(builder: (context) => AdminAcPage()));
+              break;
+            case 3:
+              Navigator.push(context, MaterialPageRoute(builder: (context) => HistoriqueAdmin()));
+              break;
+            case 4:
+              Navigator.push(context, MaterialPageRoute(builder: (context) => Profileadmin()));
+              break;
+          }
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -729,11 +722,11 @@ Widget _buildBottomNavigationBar(BuildContext context) {
             if (_showGeminiPanel) ...[
               SizedBox(height: 20),
               Card(
-                elevation: 2,
+                elevation: 4,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                color: Colors.grey[100],
+                color: Colors.white,
                 child: Padding(
                   padding: EdgeInsets.all(16),
                   child: Column(
@@ -742,73 +735,114 @@ Widget _buildBottomNavigationBar(BuildContext context) {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            '🔍 Analyse IA - $_selectedStatistic',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange[700],
-                            ),
+                          Row(
+                            children: [
+                              Icon(Icons.analytics, color: Colors.orange[700], size: 24),
+                              SizedBox(width: 8),
+                              Text(
+                                'ANALYSE PROFESSIONNELLE',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange[700],
+                                ),
+                              ),
+                            ],
                           ),
                           IconButton(
-                            icon: Icon(Icons.close),
+                            icon: Icon(Icons.close, size: 20),
                             onPressed: () => setState(() {
                               _showGeminiPanel = false;
-                              _geminiResponse = '';
                             }),
                           ),
                         ],
                       ),
-                      SizedBox(height: 12),
-                      TextField(
-                        controller: _geminiQuestionController,
-                        decoration: InputDecoration(
-                          hintText: 'Posez votre question sur les données...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: _isLoadingGemini 
-                                ? CircularProgressIndicator(strokeWidth: 2)
-                                : Icon(Icons.send, color: Colors.orange),
-                            onPressed: _isLoadingGemini ? null : _askGemini,
-                          ),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16),
-                        ),
-                        onSubmitted: (_) => _askGemini(),
-                      ),
-                      SizedBox(height: 16),
+                      Divider(color: Colors.grey[300], height: 24),
                       if (_isLoadingGemini)
-                        Center(child: CircularProgressIndicator())
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                CircularProgressIndicator(),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Génération de l\'analyse...',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
                       else if (_geminiResponse.isNotEmpty)
                         Container(
                           width: double.infinity,
                           padding: EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: _hasError ? const Color.fromARGB(255, 255, 255, 255) : const Color.fromARGB(255, 247, 247, 247),
+                            color: Colors.grey[50],
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: _hasError ? Colors.red : Colors.orange,
-                              width: 1,
+                              color: Colors.grey[200]!,
                             ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (!_hasError)
-                                Text(
-                                  'Réponse de SmartFeeder AI:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange,
+                              Row(
+                                children: [
+                                  Icon(Icons.verified_user, color: Colors.orange, size: 18),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'SMARTFEEDER AI',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange,
+                                      fontSize: 12,
+                                    ),
                                   ),
-                                ),
-                              SizedBox(height: 8),
+                                ],
+                              ),
+                              SizedBox(height: 12),
                               SelectableText(
                                 _geminiResponse,
                                 style: TextStyle(
-                                  fontSize: 15,
-                                  color: _hasError ? Colors.red : Colors.black87,
+                                  fontSize: 14,
+                                  height: 1.5,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now()),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (_hasError)
+                        Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red[100]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.error_outline, color: Colors.red),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Service temporairement indisponible. Veuillez réessayer plus tard.',
+                                  style: TextStyle(color: Colors.red[800]),
                                 ),
                               ),
                             ],
@@ -843,7 +877,7 @@ Widget _buildBottomNavigationBar(BuildContext context) {
             ),
             
             SizedBox(height: 24),
-            Text("Type D 'alimentation" , style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Type D'alimentation", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
             FutureBuilder<Map<String, int>>(
               future: _calculateFoodDistribution(),
@@ -881,7 +915,6 @@ Widget _buildBottomNavigationBar(BuildContext context) {
                         return Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Graphique circulaire
                             Expanded(
                               flex: isSmallScreen ? 10 :5,
                               child: Container(
@@ -912,7 +945,6 @@ Widget _buildBottomNavigationBar(BuildContext context) {
                               ),
                             ),
                             
-                            // Légende
                             Expanded(
                               flex: isSmallScreen ? 5 : 2,
                               child: Padding(

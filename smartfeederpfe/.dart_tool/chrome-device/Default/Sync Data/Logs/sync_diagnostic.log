@@ -45,3 +45,18 @@
 2025-05-01 17:32:17.281: [INFO][Sync] Reset engine, reason: 0
 2025-05-01 19:00:03.393: [INFO][Sync] SyncState after authenticated was: FeatureNotSetup
 2025-05-01 19:14:12.771: [INFO][Sync] Reset engine, reason: 0
+2025-05-01 19:17:17.256: [INFO][Sync] SyncState after authenticated was: FeatureNotSetup
+2025-05-01 19:24:58.989: [INFO][Sync] Reset engine, reason: 0
+2025-05-01 19:32:40.243: [INFO][Sync] SyncState after authenticated was: FeatureNotSetup
+2025-05-01 19:34:48.461: [INFO][Sync] Reset engine, reason: 0
+2025-05-01 19:35:46.657: [INFO][Sync] SyncState after authenticated was: FeatureNotSetup
+2025-05-01 20:37:52.457: [INFO][Sync] SyncState after authenticated was: FeatureNotSetup
+2025-05-01 20:57:12.930: [INFO][Sync] Reset engine, reason: 0
+2025-05-01 20:59:09.732: [INFO][Sync] SyncState after authenticated was: FeatureNotSetup
+2025-05-01 22:18:54.477: [INFO][Sync] Reset engine, reason: 0
+2025-05-02 11:10:29.486: [INFO][Sync] SyncState after authenticated was: FeatureNotSetup
+2025-05-02 11:16:05.951: [INFO][Sync] SyncState after authenticated was: FeatureNotSetup
+2025-05-02 12:15:13.296: [INFO][Sync] SyncState after authenticated was: FeatureNotSetup
+2025-05-02 12:30:07.243: [INFO][Sync] Reset engine, reason: 0
+2025-05-02 14:26:13.908: [INFO][Sync] SyncState after authenticated was: FeatureNotSetup
+2025-05-02 14:27:55.079: [INFO][Sync] Reset engine, reason: 0

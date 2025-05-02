@@ -186,7 +186,7 @@ class _AnimalAddScreenState extends State<AnimalAddScreen> {
                   end: Alignment.bottomCenter,
                 ),
               ),
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), // Modifié ici pour réduire l'espace vertical
               child: Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: 600),

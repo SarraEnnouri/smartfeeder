@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smartfeeder/admin/Ajouterutilisateur.dart';
 
-
 class GererUtilisateursScreen extends StatefulWidget {
   @override
   _GererUtilisateursScreenState createState() => _GererUtilisateursScreenState();
@@ -21,15 +20,38 @@ class _GererUtilisateursScreenState extends State<GererUtilisateursScreen> {
     super.dispose();
   }
 
+  Future<void> _saveToHistory(String action, String details, {bool isError = false}) async {
+    try {
+      await _firestore.collection('historique').add({
+        'action': action,
+        'details': details,
+        'categorie': 'utilisateur',
+        'timestamp': FieldValue.serverTimestamp(),
+        'user': 'Admin', // Ou récupérer l'admin connecté
+        'isError': isError,
+      });
+    } catch (e) {
+      print("Erreur lors de la sauvegarde dans l'historique: $e");
+    }
+  }
+
   Future<void> _toggleUserStatus(String userId, bool isActive) async {
     try {
       await _firestore.collection('users').doc(userId).update({
         'isActive': !isActive,
         'lastActivity': FieldValue.serverTimestamp(),
       });
+      
+ 
       setState(() {});
     } catch (e) {
-      print("Erreur lors de la modification du statut: $e");
+      await _saveToHistory(
+        'Erreur modification statut utilisateur',
+        'Erreur: $e',
+        isError: true,
+      );
+      
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur lors de la modification du statut')),
       );
@@ -38,42 +60,41 @@ class _GererUtilisateursScreenState extends State<GererUtilisateursScreen> {
 
   Future<void> _deleteUser(String userId, String email) async {
     try {
-      // Suppression du compte Firebase si l'email existe
-      try {
-        List<String> signInMethods = await _auth.fetchSignInMethodsForEmail(email);
-        if (signInMethods.isNotEmpty) {
-          // Note: Ne pas essayer de se connecter avec un mot de passe par défaut
-          // C'est une mauvaise pratique et cela ne fonctionnera pas
-          // A la place, cette opération devrait être faite côté admin avec les bonnes permissions
-          print("L'utilisateur existe dans Firebase Auth mais ne peut pas être supprimé sans authentification");
-        }
-      } catch (e) {
-        print("Erreur lors de la vérification de l'utilisateur Auth: $e");
-      }
+      // Enregistrement avant suppression
+      await _saveToHistory(
+        'Suppression utilisateur',
+        'Email: $email',
+      );
+
+     
 
       // Suppression du document Firestore
       await _firestore.collection('users').doc(userId).delete();
       
-      setState(() {});
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Utilisateur supprimé avec succès')),
       );
     } catch (e) {
-      print("Erreur lors de la suppression: $e");
+      await _saveToHistory(
+        'Erreur suppression utilisateur',
+        'Erreur: $e',
+        isError: true,
+      );
+      
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la suppression de l\'utilisateur')),
+        SnackBar(content: Text('Erreur lors de la suppression: ${e.toString()}')),
       );
     }
   }
 
-  // Vérifie si l'utilisateur est actif en fonction de sa dernière activité
   bool _isUserActive(Map<String, dynamic> userData) {
     final lastActivity = userData['lastActivity'] as Timestamp?;
     final isActive = userData['isActive'] as bool? ?? false;
     
     if (lastActivity == null) return false;
     
-    // Considérer l'utilisateur comme actif s'il a eu une activité dans les 5 dernières minutes
     final now = DateTime.now();
     final lastActiveTime = lastActivity.toDate();
     return isActive && now.difference(lastActiveTime).inMinutes < 5;
@@ -294,7 +315,7 @@ class _GererUtilisateursScreenState extends State<GererUtilisateursScreen> {
                   minimumSize: Size(149.02, 50),
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
