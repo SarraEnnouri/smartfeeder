@@ -183,8 +183,8 @@
    },
    "ScenarioSuppressLists": {
    },
-   "SuppressedExperiences": [ "E-tree.Bubble", "Nurturing.Global.Bing_BingGrowthToastNotification", "Nurturing.Global.EdgeEDU_BrowserFocusedTranslateNudge", "Nurturing.Global.EdgeMobile_MobileUpsell_ChatGpt_Flyout", "Nurturing.Global.EdgeVpn_VpnPublicWifiInBackground", "Nurturing.Global.Identity_ReauthNotification", "Nurturing.Global.Identity_ReauthNotification_2", "Nurturing.Global.Identity_ReauthNotification_3", "Nurturing.Global.OnRamp_RetriggerFRECodexCoPilotAutoAprd", "Nurturing.Global.OnRamp_ReTriggerOnWinUpgrade", "Outlook.Bubble", "ShorelinePrivilegedExperienceID", "Teams.Bubble", "Nurturing.Global.PWA_SidebarSearchPromotion", "AUTOFILL_PASSWORD_NON_FUNCTIONAL_FLYOUTS", "Nurturing.Global.ThirdPartySearchConsent" ],
+   "SuppressedExperiences": [  ],
    "TimeDelta": 5000000,
-   "baseConfigVersion": "26.0.4",
-   "configVersion": "26.0.4"
+   "baseConfigVersion": "27.0.1",
+   "configVersion": "27.0.1"
 }

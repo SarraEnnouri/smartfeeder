@@ -630,7 +630,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           DateFormat.MMMM('fr_FR').format(DateTime.now()),
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 14,
+                            fontSize: 16,
                           ),
                         ),
                       ),
