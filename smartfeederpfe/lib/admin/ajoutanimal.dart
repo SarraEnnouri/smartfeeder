@@ -50,26 +50,44 @@ class _AnimalAddScreenState extends State<AnimalAddScreen> {
 }
 
   Future<void> _selectTime(BuildContext context, bool isMedication) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null) {
-      setState(() {
-        if (isMedication) {
-          _medicationTime = picked;
-        } else {
-          _lastFeedingTime = DateTime(
-            DateTime.now().year,
-            DateTime.now().month,
-            DateTime.now().day,
-            picked.hour,
-            picked.minute,
-          );
-        }
-      });
-    }
+  final TimeOfDay? picked = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.now(),
+    builder: (BuildContext context, Widget? child) {
+      return Theme(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Colors.orange,
+            onPrimary: Colors.white,
+            surface: Colors.white,
+            onSurface: Colors.black,
+          ),
+          buttonTheme: const ButtonThemeData(
+            textTheme: ButtonTextTheme.primary,
+          ),
+        ),
+        child: child!,
+      );
+    },
+  );
+
+  if (picked != null) {
+    setState(() {
+      if (isMedication) {
+        _medicationTime = picked;
+      } else {
+        _lastFeedingTime = DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+          picked.hour,
+          picked.minute,
+        );
+      }
+    });
   }
+}
+
 
  Future<void> _addAnimal() async {
   if (_formKey.currentState!.validate()) {
@@ -77,7 +95,7 @@ class _AnimalAddScreenState extends State<AnimalAddScreen> {
       // Vérifie si l'animal existe déjà
       final querySnapshot = await FirebaseFirestore.instance
           .collection('animals')
-          .where('species', isEqualTo: _speciesController.text.trim())
+           .where('species', isEqualTo: _speciesController.text.trim())
           .get();
 
       if (querySnapshot.docs.isNotEmpty) {

@@ -10,175 +10,213 @@ class Alerteadmin extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Alertes',
           style: TextStyle(color: Colors.black),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: Container(
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Alertes',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(height: 10),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: alertsCollection.where('type', isEqualTo: 'warning').snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return Center(child: Text('Erreur : ${snapshot.error}'));
-                    }
-
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                        ),
-                      );
-                    }
-
-                    return ListView.builder(
-                      itemCount: snapshot.data!.docs.length,
-                      itemBuilder: (context, index) {
-                        var alert = snapshot.data!.docs[index];
-                        String alertId = alert.id;
-                        String title = alert['title'];
-                        return _buildWarningItem(alertId, title);
-                      },
-                    );
-                  },
-                ),
-              ),
-              SizedBox(height: 20),
-              Text(
-                'Notifications générales',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(height: 10),
-              _buildGeneralNotification(),
-              Divider(height: 1, thickness: 0.5, color: Colors.grey), // Divider ajouté ici
-              SizedBox(height: 20),
-              Text(
-                'Pannes du système',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(height: 10),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: alertsCollection.where('type', isEqualTo: 'error').snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return Center(child: Text('Erreur : ${snapshot.error}'));
-                    }
-
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                        ),
-                      );
-                    }
-
-                    return ListView.builder(
-                      itemCount: snapshot.data!.docs.length,
-                      itemBuilder: (context, index) {
-                        var alert = snapshot.data!.docs[index];
-                        String title = alert['title'];
-                        return _buildFailureItem(title);
-                      },
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () async {
-                        await _markAllAsResolved();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text('Marquer comme résolu'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          const Text(
+            'Nouvelles inscriptions',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
-        ),
+          const SizedBox(height: 10),
+          _buildSignupStream(),
+
+          const Divider(height: 30, thickness: 0.5, color: Color.fromARGB(255, 196, 196, 196)),
+
+          const Text(
+            'Pannes du système',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _buildErrorStream(),
+
+          const SizedBox(height: 20),
+          Center(
+            child: ElevatedButton(
+              onPressed: _markAllAsResolved,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Marquer tout comme résolu'),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
       ),
     );
   }
 
-  Future<void> _markAsResolved(String alertId) async {
-    await alertsCollection.doc(alertId).update({
-      'status': 'resolved',
-    });
+  /// STREAM BUILDERS
+
+ Widget _buildSignupStream() {
+  return StreamBuilder<QuerySnapshot>(
+    stream: alertsCollection
+        .where('type', isEqualTo: 'user_signup')
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return Center(child: Text('Erreur : ${snapshot.error}'));
+      }
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+          ),
+        );
+      }
+      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        return const Center(child: Text('Aucune inscription récente.'));
+      }
+      return Column(
+        children: snapshot.data!.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return _buildSignupItem(
+            data['title'] ?? 'Titre non disponible',
+            data['details'] ?? 'Détails non disponibles',
+          );
+        }).toList(),
+      );
+    },
+  );
+}
+
+Widget _buildSignupItem(String title, String details) {
+  return Container(
+    margin: const EdgeInsets.symmetric(vertical: 5),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: const Color.fromARGB(255, 250, 236, 224),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: const Color.fromARGB(255, 255, 228, 177).withOpacity(0.3)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+         Row(
+          children: [
+            const Icon(Icons.person_add, color: Color.fromARGB(255, 255, 190, 68)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+              ),
+            ),
+          ],
+        ),
+        Text(
+          details,
+          style: const TextStyle(fontSize: 14, color: Colors.black54),
+        ),
+        const SizedBox(height: 8),
+       
+      ],
+    ),
+  );
+}
+
+
+  Widget _buildErrorStream() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: alertsCollection
+          .where('type', isEqualTo: 'error')
+          .where('status', isEqualTo: 'unresolved')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Erreur : ${snapshot.error}'));
+        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+          ));
+        }
+        if (snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text('Aucune panne détectée.'));
+        }
+        return Column(
+          children: snapshot.data!.docs.map((doc) {
+            return _buildFailureItem(doc['title']);
+          }).toList(),
+        );
+      },
+    );
   }
 
-  Future<void> _markAllAsResolved() async {
-    QuerySnapshot querySnapshot = await alertsCollection.get();
-    for (var doc in querySnapshot.docs) {
-      await doc.reference.update({
+  /// ACTIONS FIRESTORE
+
+  Future<void> _markAsResolved(String alertId) async {
+    try {
+      await alertsCollection.doc(alertId).update({
         'status': 'resolved',
+        'timestampResolved': Timestamp.now(),
       });
+    } catch (e) {
+      print('Erreur lors de la mise à jour : $e');
     }
   }
 
+  Future<void> _markAllAsResolved() async {
+    try {
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+      QuerySnapshot querySnapshot = await alertsCollection
+          .where('status', isEqualTo: 'unresolved')
+          .get();
+      for (var doc in querySnapshot.docs) {
+        batch.update(doc.reference, {
+          'status': 'resolved',
+          'timestampResolved': Timestamp.now(),
+        });
+      }
+      await batch.commit();
+    } catch (e) {
+      print('Erreur lors du traitement batch : $e');
+    }
+  }
+
+  /// BUILDER WIDGETS
+
   Widget _buildWarningItem(String alertId, String title) {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 5),
-      padding: EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Color(0xFFFDEAE9),
+        color: const Color(0xFFFDEAE9),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.orange.withOpacity(0.3)),
       ),
       child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.orange),
-          SizedBox(width: 12),
+          const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               title,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
             ),
           ),
           IconButton(
-            icon: Icon(Icons.check_circle_outline, color: Colors.green),
+            icon: const Icon(Icons.check_circle_outline, color: Colors.green),
             onPressed: () => _markAsResolved(alertId),
           ),
         ],
@@ -186,68 +224,30 @@ class Alerteadmin extends StatelessWidget {
     );
   }
 
-  Widget _buildGeneralNotification() {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 5),
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Color(0xFFFCF1E4),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Color(0xFFFCF1E4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.check_circle_outline, color: Color.fromARGB(255, 2, 2, 2)),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Distribution effectuée avec succès',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8), // Espacement entre le texte et la ligne
-          Divider(
-            height: 1, // Hauteur totale incluant l'épaisseur
-            thickness: 1, // Épaisseur de la ligne
-            color: Colors.black, // Couleur noire
-          ),
-        ],
-      ),
-    );
-  }
-
+  
   Widget _buildFailureItem(String title) {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 5),
-      padding: EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Color.fromARGB(255, 11, 11, 11),
+        color: Colors.black,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.red.withOpacity(0.3)),
       ),
       child: Row(
         children: [
-          Icon(Icons.error, color: Colors.red),
-          SizedBox(width: 12),
+          const Icon(Icons.error, color: Colors.red),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               title,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 16, color: Colors.white),
             ),
           ),
         ],
       ),
     );
   }
+
+ 
 }

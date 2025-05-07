@@ -89,7 +89,7 @@ class _AdminAcPageState extends State<AdminAcPage> {
 
   Color _getFoodColorByRank(int rank) {
     switch (rank) {
-      case 1: return const Color.fromARGB(212, 244, 155, 54);
+      case 1: return const Color.fromARGB(212, 244, 155, 54);  
       case 2: return const Color.fromARGB(255, 109, 109, 109);
       case 3: return const Color.fromARGB(255, 0, 0, 0);
       default: return const Color.fromARGB(255, 255, 211, 175);
