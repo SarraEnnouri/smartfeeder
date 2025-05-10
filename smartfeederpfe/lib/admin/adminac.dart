@@ -132,14 +132,7 @@ class _AdminAcPageState extends State<AdminAcPage> {
     String foodAnalysis = '';
     String waterAnalysis = '';
     
-    if (food < 5000000) foodAnalysis = 'FAIBLE consommation alimentaire';
-    else if (food < 8000000) foodAnalysis = 'Consommation alimentaire NORMALE';
-    else foodAnalysis = 'HAUTE consommation alimentaire - À surveiller';
-    
-    if (water < 3000000) waterAnalysis = 'FAIBLE consommation hydrique';
-    else if (water < 6000000) waterAnalysis = 'Consommation hydrique NORMALE';
-    else waterAnalysis = 'HAUTE consommation d\'eau - Vérifier l\'abreuvement';
-    
+   
     return '''
 STATISTIQUES:
 - Nourriture: ${food.toStringAsFixed(0)} g ($foodAnalysis)

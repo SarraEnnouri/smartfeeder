@@ -50,44 +50,26 @@ class _AnimalAddScreenState extends State<AnimalAddScreen> {
 }
 
   Future<void> _selectTime(BuildContext context, bool isMedication) async {
-  final TimeOfDay? picked = await showTimePicker(
-    context: context,
-    initialTime: TimeOfDay.now(),
-    builder: (BuildContext context, Widget? child) {
-      return Theme(
-        data: ThemeData.light().copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Colors.orange,
-            onPrimary: Colors.white,
-            surface: Colors.white,
-            onSurface: Colors.black,
-          ),
-          buttonTheme: const ButtonThemeData(
-            textTheme: ButtonTextTheme.primary,
-          ),
-        ),
-        child: child!,
-      );
-    },
-  );
-
-  if (picked != null) {
-    setState(() {
-      if (isMedication) {
-        _medicationTime = picked;
-      } else {
-        _lastFeedingTime = DateTime(
-          DateTime.now().year,
-          DateTime.now().month,
-          DateTime.now().day,
-          picked.hour,
-          picked.minute,
-        );
-      }
-    });
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isMedication) {
+          _medicationTime = picked;
+        } else {
+          _lastFeedingTime = DateTime(
+            DateTime.now().year,
+            DateTime.now().month,
+            DateTime.now().day,
+            picked.hour,
+            picked.minute,
+          );
+        }
+      });
+    }
   }
-}
-
 
  Future<void> _addAnimal() async {
   if (_formKey.currentState!.validate()) {
@@ -95,7 +77,7 @@ class _AnimalAddScreenState extends State<AnimalAddScreen> {
       // Vérifie si l'animal existe déjà
       final querySnapshot = await FirebaseFirestore.instance
           .collection('animals')
-           .where('species', isEqualTo: _speciesController.text.trim())
+          .where('species', isEqualTo: _speciesController.text.trim())
           .get();
 
       if (querySnapshot.docs.isNotEmpty) {
@@ -139,7 +121,9 @@ class _AnimalAddScreenState extends State<AnimalAddScreen> {
           'Ajout d\'un nouvel animal',
           'Espèce: ${_speciesController.text.trim()}, Quantité: $_quantity',
         );
-
+  if (_medicationController.text.isNotEmpty && _medicationTime != null) {
+        await _sendAlert();
+      }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Animal ajouté avec succès')),
         );
@@ -159,7 +143,39 @@ class _AnimalAddScreenState extends State<AnimalAddScreen> {
     }
   }
 }
+Future<void> _sendAlert() async {
+  try {
+    if (_medicationController.text.isEmpty || _medicationTime == null) {
+      throw ArgumentError('Médicament et heure requis');
+    }
 
+    // Créer un DateTime basé sur la date actuelle et l'heure sélectionnée
+    final DateTime now = DateTime.now();
+    final DateTime scheduledDateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      _medicationTime!.hour,
+      _medicationTime!.minute,
+    );
+
+    await FirebaseFirestore.instance.collection('alertUser').add({
+      'title': 'Médicament pour ${_speciesController.text}',
+      'description': "Administrer :Nouvelle  ",
+      'timestamp': Timestamp.now(),
+      'seen': false,
+      'type': 'warning',
+      'species': _speciesController.text,
+      'medication': _medicationController.text,
+      'status': 'pending',
+      'scheduledTime': Timestamp.fromDate(scheduledDateTime),
+    });
+
+  } catch (e) {
+    await _saveToHistory('Erreur d\'alerte', e.toString(), isError: true);
+    rethrow;
+  }
+}
 
   void _resetForm() {
     _speciesController.clear();
@@ -204,7 +220,7 @@ class _AnimalAddScreenState extends State<AnimalAddScreen> {
                   end: Alignment.bottomCenter,
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), // Modifié ici pour réduire l'espace vertical
+              padding: const EdgeInsets.all(16.0),
               child: Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: 600),
